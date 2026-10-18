@@ -6,7 +6,7 @@
     {
       "name": "session-info",
       "source": "./session-info",
-      "description": "いま開いている Claude Code のセッションを1行ずつの表で見るペイン。チームと主、返事待ちの色、g のボタン、送る文、詳しくのボタン、AI の要約"
+      "description": "いま開いている Claude Code のセッションを1行ずつの表で見るペイン。チームと主、返事待ちの色、g のボタン、送る文、詳しくのボタン、タブを前に出す開くのボタン、AI の要約"
     }
   ]
 }

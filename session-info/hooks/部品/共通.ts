@@ -33,7 +33,8 @@ export function isRow(value: unknown): value is SessionRow {
     (row.answer === undefined || typeof row.answer === 'string') &&
     (row.summary === undefined || typeof row.summary === 'string') &&
     (row.address === undefined || typeof row.address === 'string') &&
-    (row.inbox === undefined || Array.isArray(row.inbox))
+    (row.inbox === undefined || Array.isArray(row.inbox)) &&
+    (row.entrypoint === undefined || typeof row.entrypoint === 'string')
 }
 
 // $.state は読み直しをまたいで残るので、前の版の形の値が来ても落ちないようにそろえる

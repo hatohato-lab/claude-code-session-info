@@ -279,6 +279,7 @@ def main():
             "summary": memo.get("summary", ""),
             "address": d.get("name") if isinstance(d.get("name"), str) else "",
             "inbox": memo.get("inbox", []),
+            "entrypoint": d.get("entrypoint") if isinstance(d.get("entrypoint"), str) else "",
         })
     rows.sort(key=lambda r: r["name"])
     json.dump({"rows": rows, "cache": memos}, sys.stdout, ensure_ascii=False)

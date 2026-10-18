@@ -22,15 +22,16 @@ const NOW = new Date(2026, 9, 18, 9, 0).getTime()
 const START = { cwd: 'C:\\work\\space', surface: null, isInteractive: true } as const
 const SELF = 'bbbb2222-bbbb'
 
-type Row = { id: string; name: string; status: string; compactions: number; bytes: number; answer: string; summary: string }
+type Row = { id: string; name: string; status: string; compactions: number; bytes: number; answer: string; summary: string; entrypoint: string }
 
 // セッション表.py の出力の見本（3セッション。このセッションは 監視係）。
-// セッションA と 監視係 は最後の答えで g を求めていて、セッションC は はい・いいえ を聞いている
+// セッションA と 監視係 は最後の答えで g を求めていて、セッションC は はい・いいえ を聞いている。
+// セッションA と 監視係 は VS Code のタブ、セッションC はターミナルのセッション
 function rows(selfSummary = '見出しの整え方（3点）'): Row[] {
   return [
-    { id: 'aaaa1111-aaaa', name: 'セッションA', status: '待機中', compactions: 3, bytes: 40_000_000, answer: '**お返事待ちです。**この形でよければ g をお願いします。', summary: '見出しの直し（2点）' },
-    { id: 'cccc3333-cccc', name: 'セッションC', status: '確認待ち', compactions: 1, bytes: 10_000_000, answer: '表を直しました。\nこれでよいですか。', summary: '表を直しました。' },
-    { id: SELF, name: '監視係', status: '作業中', compactions: 0, bytes: 2_500_000, answer: '見出しをそろえました。\nよろしければ「g」をください。', summary: selfSummary },
+    { id: 'aaaa1111-aaaa', name: 'セッションA', status: '待機中', compactions: 3, bytes: 40_000_000, answer: '**お返事待ちです。**この形でよければ g をお願いします。', summary: '見出しの直し（2点）', entrypoint: 'claude-vscode' },
+    { id: 'cccc3333-cccc', name: 'セッションC', status: '確認待ち', compactions: 1, bytes: 10_000_000, answer: '表を直しました。\nこれでよいですか。', summary: '表を直しました。', entrypoint: 'cli' },
+    { id: SELF, name: '監視係', status: '作業中', compactions: 0, bytes: 2_500_000, answer: '見出しをそろえました。\nよろしければ「g」をください。', summary: selfSummary, entrypoint: 'claude-vscode' },
   ]
 }
 
@@ -38,12 +39,12 @@ function ran(stdout: string, exitCode = 0, stderr = ''): ProcessRunResult {
   return { exitCode, stdout, stderr, isStdoutTruncated: false, isStderrTruncated: false }
 }
 
-type World = { opens: number; stdins: string[]; scripts: string[]; prompts: string[] }
+type World = { opens: number; stdins: string[]; scripts: string[]; prompts: string[]; argvs: string[][] }
 
 // セッションID・ペイン・セッション表.py を、テストの中で答える
 // model は AI の要約の見本（null なら失敗として答える）
 function stubWorld(on: On, answer: (call: number) => ProcessRunResult, model?: (prompt: string) => string | null): World {
-  const world: World = { opens: 0, stdins: [], scripts: [], prompts: [] }
+  const world: World = { opens: 0, stdins: [], scripts: [], prompts: [], argvs: [] }
   on('model.complete', ($, e) => {
     world.prompts.push(String(e.prompt))
     const text = model === undefined ? null : model(String(e.prompt))
@@ -60,6 +61,9 @@ function stubWorld(on: On, answer: (call: number) => ProcessRunResult, model?: (
     return { value: { isPlaced: true } }
   })
   on('process.run', ($, e) => {
+    world.argvs.push([...e.argv])
+    // タブを前に出す start は、表の読み直しではないので数えない
+    if (e.argv[0] === 'cmd') return { value: ran('') }
     world.scripts.push(e.argv.find(arg => arg.endsWith('.py')) ?? '')
     world.stdins.push(String(e.init?.stdin ?? ''))
     return { value: answer(world.stdins.length) }
@@ -136,12 +140,27 @@ test('各行に入力ボックスが1つずつあり、g のボタンは g を�
   const ui = await $.ui.mount({ plugin: 'session-info', surface: 'vscode', ...PANE })
   const inputs = await ui.findAll({ type: 'Input' })
   expect(inputs.length).toBe(3)
-  // 送るボタンは「送」の1文字（10/18 の指示）
-  expect(inputs.every(found => found.props.submitLabel === '送')).toBe(true)
+  // 送るボタンは出さない（空の名前。VS Code は名前が空ならボタンを描かない）。Enter で送る（10/18 の指示で欄を狭めたため）
+  expect(inputs.every(found => found.props.submitLabel === '')).toBe(true)
   const keys = (await ui.findAll({ type: 'Button' })).map(found => String(found.props.key))
   expect(keys.filter(key => key.startsWith('g-')).sort()).toEqual(['g-aaaa1111-aaaa', 'g-' + SELF].sort())
   // 詳しくのボタンは、どの行にも1つずつ
   expect(keys.filter(key => key.startsWith('detail-')).length).toBe(3)
+  await ui.unmount()
+})
+
+test('開くのボタンは、VS Code のタブのほかのセッションの行にだけ出て、押すとそのタブを前に出す URL を開く', async ($, on) => {
+  const { clock, world } = await started($, on)
+  const ui = await $.ui.mount({ plugin: 'session-info', surface: 'vscode', ...PANE })
+  expect(await ui.find({ type: 'Text', text: '開く' })).toBeDefined()
+  const keys = (await ui.findAll({ type: 'Button' })).map(found => String(found.props.key))
+  // セッションC はターミナルのセッション、監視係 はこのセッションなので出さない
+  expect(keys.filter(key => key.startsWith('open-'))).toEqual(['open-aaaa1111-aaaa'])
+  await ui.press({ key: 'open-aaaa1111-aaaa' })
+  await clock.advance(100)
+  expect(world.argvs.find(argv => argv[0] === 'cmd')).toEqual(['cmd', '/c', 'start', '', 'vscode://anthropic.claude-code/open?session=aaaa1111-aaaa'])
+  // 前に出せたときは、送った結果の欄に何も書かない
+  expect(await ui.find({ type: 'Text', text: /タブを前に出せませんでした/ })).toBeUndefined()
   await ui.unmount()
 })
 

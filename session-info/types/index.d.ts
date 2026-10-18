@@ -18,6 +18,8 @@ export type SessionRow = {
   address?: string
   // そのセッションに届いた連絡（送り主の宛先名、本文の頭、届いた時刻のミリ秒）。新しいものから30件まで
   inbox?: Inbox[]
+  // セッションの起動元（登録ファイルの entrypoint）。claude-vscode なら VS Code のタブ
+  entrypoint?: string
 }
 
 export type Inbox = { from: string; text: string; at: number }

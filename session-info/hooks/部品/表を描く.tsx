@@ -1,5 +1,5 @@
 // ペインの中身を描く。1セッション＝1行の表で、見出しの行を付ける
-// 列は左から、チームの線、チームの ■、名前、状態、進める（g）、送る文（入力ボックス）、メッセージ（最後の報告の要約）
+// 列は左から、チームの線、チームの ■、名前、状態、進める（g）、送る文（入力ボックス）、詳しく、開く（タブを前に出す）、メッセージ（最後の報告の要約）
 // 10/18、2行や4行のカードにすると分かりづらいとの指示で1行の表に戻した。メッセージは指示で一番右に置き、字を小さくした
 // チーム（名前の数字を除いた部分が同じセッションが2つ以上）は続けて並べ、左に同じ色の線と ■ を付ける。
 // チームの中では、主（直近3時間にチームへ一番多く連絡を出したセッション）を先頭にし、ほかには「└」を付ける。
@@ -10,6 +10,7 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 
 import type { Inbox, SessionRow, Summary } from '../../types'
 import { BLACK, BLUE, EMPTY, HEAD_FILL, RED, SELF_FILL, fitCells, live, normalize } from './共通'
+import { bringToFront, isTab } from './タブを前に出す'
 import { askDetail, asksG, findAsk, pressG, readNote, sendText } from './文を送る'
 import { messageOf } from './要約する'
 
@@ -25,10 +26,14 @@ const summaries = atom({ plugin: 'session-info', key: 'summaries' } as const, {}
 const NAME_CELLS = 14
 const STATUS_CELLS = 4
 const BUTTON_CELLS = 5
-// 入力ボックスの幅。15桁では「送」が下に落ちて行が2段になったので、横に並ぶ24桁にした
-const INPUT_CELLS = 24
+// 入力ボックスの幅（10/18 の指示で狭めた。声で入れて Enter を押すだけなので、全角3〜4文字が見えればよい）。
+// 送のボタンは無くし、Enter で送る（ボタンがあると、狭い幅でボタンが下に落ちて行が2段になる）。
+// VS Code の入力欄は、最小の幅が半角8文字分と枠の分あるので、はみ出さない10桁にした
+const INPUT_CELLS = 10
 // 詳しくのボタンの列（押すと、このチャットでその報告を詳しく説明する）
 const DETAIL_CELLS = 6
+// 開くのボタンの列（押すと、そのセッションのタブが VS Code の一番前に出る。10/18 の指示）
+const OPEN_CELLS = 5
 
 // 状態は1文字で出す（10/18 の指示）。作＝作業中、待＝待機中、確＝確認待ち。ほかの値は頭の1文字
 const STATUS_MARK: Record<string, string> = { 作業中: '作', 待機中: '待', 確認待ち: '確' }
@@ -211,7 +216,7 @@ export async function drawPane($: EngineInterface, e: RenderInput<'Pane'>): Prom
           {Input !== undefined && (
             <Input
               key={'input-' + row.id + '-' + String(count)}
-              submitLabel="送"
+              submitLabel=""
               onSubmit={value => {
                 void sendText($, row, value)
               }}
@@ -220,6 +225,9 @@ export async function drawPane($: EngineInterface, e: RenderInput<'Pane'>): Prom
         </Box>
         <Box key={row.id + '-detail'} width={DETAIL_CELLS} flexShrink={0} flexDirection="column" justifyContent="center" alignItems="center">
           <Button key={'detail-' + row.id} label="詳" onPress={() => void askDetail($, row)} />
+        </Box>
+        <Box key={row.id + '-open'} width={OPEN_CELLS} flexShrink={0} flexDirection="column" justifyContent="center" alignItems="center">
+          {!isSelf && isTab(row) && <Button key={'open-' + row.id} label="開" onPress={() => void bringToFront($, row)} />}
         </Box>
         <Box key={row.id + '-message'} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden" flexDirection="column" justifyContent="center">
           <Text color={textColor} size="caption" wrap="truncate-end">{messageOf(row, storedSummaries)}</Text>
@@ -269,6 +277,9 @@ export async function drawPane($: EngineInterface, e: RenderInput<'Pane'>): Prom
         </Box>
         <Box key="head-detail" width={DETAIL_CELLS} flexShrink={0} justifyContent="center">
           <Text bold color={BLACK}>詳しく</Text>
+        </Box>
+        <Box key="head-open" width={OPEN_CELLS} flexShrink={0} justifyContent="center">
+          <Text bold color={BLACK}>開く</Text>
         </Box>
         <Box key="head-message" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
           <Text bold color={BLACK}>メッセージ</Text>
