@@ -1,0 +1,12 @@
+{
+  "name": "hatohato-mods",
+  "owner": { "name": "hatohato-lab" },
+  "description": "Claude Code の MOD を集めたリポジトリ（いまはセッション情報の1つ）",
+  "plugins": [
+    {
+      "name": "session-info",
+      "source": "./session-info",
+      "description": "いま開いている Claude Code のセッションを1行ずつの表で見るペイン。チームと主、返事待ちの色、g のボタン、送る文、詳しくのボタン、AI の要約"
+    }
+  ]
+}
