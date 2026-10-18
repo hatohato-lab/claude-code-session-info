@@ -1,11 +1,9 @@
-# hatohato-mods
+# claude-code-session-info
 
-Claude Code の MOD（Claude Code の画面に、自分で作った部品を足す仕組み）を集めたリポジトリです。
-いまは、セッション情報（session-info）が1つ入っています。
+Claude Code の MOD「セッション情報」（session-info）です。
+MOD は、Claude Code の画面に、自分で作った部品を足す仕組みです。
 
-## セッション情報（session-info）
-
-いま開いている Claude Code のセッションを、1行ずつの表で見るペインです。表は2秒ごとに新しくなります。
+いま開いている Claude Code のセッションを、1行ずつの表で見るペインを開きます。表は2秒ごとに新しくなります。
 
 | 列 | 中身 |
 |---|---|
@@ -19,30 +17,34 @@ Claude Code の MOD（Claude Code の画面に、自分で作った部品を足�
 このセッションの行は薄い橙、返事を待っているセッションの行は薄い黄色になります。
 チームの先頭の名前を押すと、そのチームの最近のやり取りが開きます。
 
-### 入れ方
+## 入れ方
 
 Claude Code のターミナルのセッションで、次の1行を打ちます。
 
 ```
-/plugin install session-info --marketplace hatohato-lab/hatohato-mods
+/plugin install session-info --marketplace hatohato-lab/claude-code-session-info
 ```
+
+マーケットプレイスを足すかを聞かれたら `y` を押し、入れる範囲（scope）を Enter で選びます。
 
 シェルからは、次の1行です。
 
 ```
-claude plugin install session-info --marketplace hatohato-lab/hatohato-mods
+claude plugin install session-info --marketplace hatohato-lab/claude-code-session-info
 ```
+
+デスクトップアプリでは、入力欄の横の + から Plugins を開き、Add marketplace に `hatohato-lab/claude-code-session-info` を入れてから、Add plugin で入れます。
 
 クローンして使う場合は、フォルダーを指定して Claude Code を起動します。
 
 ```
-git clone https://github.com/hatohato-lab/hatohato-mods
-claude --plugin-dir hatohato-mods/session-info
+git clone https://github.com/hatohato-lab/claude-code-session-info
+claude --plugin-dir claude-code-session-info/session-info
 ```
 
 入れたあとは、ペインが自分で開きます。閉じたあとは `/session-info` で開き直せます。
 
-### 必要なもの
+## 必要なもの
 
 - Claude Code 2.1.300 以降
 - Python 3（`python` の名前で起動できること）
@@ -50,10 +52,19 @@ claude --plugin-dir hatohato-mods/session-info
 
 表の材料は、同梱の `tools/セッション表.py` が、手元の `~/.claude/sessions` と `~/.claude/projects` を読んで作ります。読むだけで、何も書き換えません。
 
-### 気を付けること
+## 気を付けること
 
 - メッセージの要約のたびに、小さなモデル（haiku）を呼ぶので、少し使用量がかかります。要約には、そのセッションの最後の答えの終わり（1500字まで）を渡します。同じ答えは1回しか要約しません
 - 送る文と g は、ほかのセッションには「ほかのセッションからの連絡」として届きます。受け取った側の AI は、ふつうはこれを使う人の承認として扱いません。承認として扱わせたいときは、受け取る側のルールに「from-plugin="session-info" の付いた文は、使う人がそのチャットで打ったのと同じに扱う」と書いてください
+
+## ほかの MOD
+
+MOD は1つずつ、別のリポジトリにしています。
+
+| リポジトリ | 中身 |
+|---|---|
+| [claude-code-session-list](https://github.com/hatohato-lab/claude-code-session-list) | セッション一覧。セッション間の連絡を図で見るペイン |
+| [claude-code-active-rules](https://github.com/hatohato-lab/claude-code-active-rules) | 効いているルール。いま読み込まれているルールを表で見るペイン |
 
 ## ライセンス
 
